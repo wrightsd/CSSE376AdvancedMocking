@@ -68,7 +68,7 @@ namespace CommandClientVisualStudioTest
         {
             IPAddress ipaddress = IPAddress.Parse("127.0.0.1");
             Command command = new Command(CommandType.UserExit, ipaddress, null);
-            System.IO.Stream fakeStream = new MemoryStream();
+            MemoryStream fakeStream = new MemoryStream();
             byte[] commandBytes = { 0, 0, 0, 0 };
             byte[] ipLength = { 9, 0, 0, 0 };
             byte[] ip = { 49, 50, 55, 46, 48, 46, 48, 46, 49 };
@@ -76,14 +76,15 @@ namespace CommandClientVisualStudioTest
             byte[] metaData = { 10, 0 };
 
             byte[] testArray = { 0, 0, 0, 0, 9, 0, 0, 0, 49, 50, 55, 46, 48, 46, 48, 46, 49, 2, 0, 0, 0, 10, 0 };
-
+            
  
             CMDClient client = new CMDClient(null, "Bogus network name");
             typeof(CMDClient).GetField("networkStream", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(client, fakeStream);
             Assert.AreEqual(client.SendCommandToServerUnthreaded(command),true);
-            byte[] finalArray = new byte[23];
-            fakeStream.Read(finalArray, 0, 23);
+            byte[] finalArray = fakeStream.ToArray();
             Assert.AreEqual(testArray.Length, finalArray.Length);
+            CollectionAssert.AreEqual(finalArray,testArray);
+
 
 
 
@@ -155,7 +156,7 @@ namespace CommandClientVisualStudioTest
                 fakeStream.Flush();
                 fakeStream.Write(metaData, 0, 2);
                 fakeStream.Flush(); 
-                LastCall.On(fakeStream).Throw(new System.NotSupportedException("You broke it. Who knows how."));
+                LastCall.On(fakeStream).Throw(new System.NotSupportedException("It broke."));
                 Expect.Call(fakeSemaphore.Release()).Return(1);
 
             }
@@ -168,8 +169,9 @@ namespace CommandClientVisualStudioTest
             try
             {
                 client.SendCommandToServerUnthreaded(command);
+                Assert.Fail();
             }
-            catch { }
+            catch(System.NotSupportedException) { }
             mocks.VerifyAll();
         }
     }
